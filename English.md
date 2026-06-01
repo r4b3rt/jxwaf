@@ -1,135 +1,213 @@
-# JXWAF
+[中文](README.md) | English
 
-## Introduction
+# JXWAF Professional Edition
 
-JXWAF6 Standard Edition is a Web Application Firewall based on AI large models.
+An AI‑powered Web Application Firewall. It analyses web traffic in real time, scrubs malicious requests, and forwards clean traffic to your backend servers — keeping your business secure and stable.
 
-## Features
+🌟 **AI Security Model** | **Semantic Analysis Engine** | **SSL Behaviour Analysis Engine** | **WebTDS Real‑time Analysis**
 
-- Data Statistics
-- Attack Events
-- Attack Logs
-- Website Protection
-  - Website Integration
-  - Certificate Management
-- AI Protection Configuration
-  - Web Security Protection
-  - AI Analysis Records
-- Protection Configuration
-  - Web Protection Rules
-  - Traffic Protection Rules
-  - IP Region Blocking
-  - Whitelist Rules
-- Protection Components
-- Node Status
+> 📖 Full documentation: [https://docs.jxwaf.com](https://docs.jxwaf.com)
 
-## Deployment
+## Product Highlights
 
-### Environment Requirements
+### AI Security Model
+Built on a proprietary multi‑dimensional sparse attention mechanism and online distillation technology, the large‑model detection capability is efficiently transferred to a local inference engine, achieving **high concurrency, low cost, and low hallucination** web security detection. Supports **0‑day automatic detection** and **automatic false‑positive handling**, significantly reducing operational costs.
 
-- Server System: Debian 12.x
-- Minimum Server Configuration: 4 cores, 8GB RAM
+### Semantic Analysis Engine
+Uses contextual, dynamic semantic analysis to move beyond traditional regular expression limitations, **accurately identifying attacks while drastically reducing false positives**. Effectively defends against SQL injection, XSS, command execution, code execution, and high‑risk N‑Day exploits.
 
-### One-Click Deployment
+### SSL Behaviour Analysis Engine
+Based on a new SSL fingerprinting algorithm and protocol anomaly behaviour analysis, it quickly identifies non‑browser traffic and effectively detects **CC attacks**, **crawler traffic**, and other abnormal flows.
 
-Server IP Addresses:
-- Public Address: 47.120.63.196
-- Internal Address: 172.29.198.241
+### WebTDS Real‑time Analysis
+Integrated with a Web traffic threat perception system. A self‑developed real‑time big‑data analysis engine performs millisecond‑level threat analysis (far outperforming generic stream processing systems). No coding required — use policy configuration to enable **APT detection**, **advanced bot protection**, and **business risk analysis**.
+
+## System Architecture
+
+JXWAF consists of three independently deployed subsystems:
+
+- **JXWAF Console (jxwaf_admin_server)** – Web UI for operations: site onboarding management, policy configuration, and report display.
+- **JXWAF Node (jxwaf_node)** – High‑performance traffic proxy and real‑time attack detection engine built on OpenResty. Supports clustering and elastic scaling.
+- **JXLOG Log System (jxlog)** – Lightweight Go‑based log collection, stored in ClickHouse. Supports event analysis and report statistics.
+
+```
+     Normal Users                  Attackers
+          │                           │
+          ▼                           ▼
+   ┌─────────────────────────────────────────────┐   config sync    ┌──────────────┐
+   │            JXWAF Node (Cluster)              │◄══════════════►│ JXWAF Console │
+   │      Traffic Proxy · Attack Detection · Filter│                 │              │
+   └──┬──────────┬──────────┬────────────────────┘                 └──────▲───────┘
+      │          │          │ log upload                                    │
+      ▼          ▼          ▼                                              │ log query
+   ┌──────┐  ┌──────┐  ┌──────────┐
+   │App 1 │  │App 2 │  │  JXLOG   │────────────────────────────────────────┘
+   └──────┘  └──────┘  └──────────┘
+```
+
+## Quick Deployment
+
+### Requirements
+
+| Item           | Requirement                  |
+| -------------- | ---------------------------- |
+| Operating system | Debian 12.x                |
+| Minimum specs  | 4 vCPU, 8 GB RAM             |
+| Dependencies   | Docker, Docker Compose       |
+
+> All components are deployed via Docker Compose. Make sure Docker is properly installed.  
+> Install command: `curl -fsSL https://get.docker.com | bash -s docker --mirror Aliyun`
+
+### 1. JXWAF Console Deployment
 
 ```bash
-# 1. Install Docker
-curl -fsSL https://get.docker.com | bash -s docker --mirror Aliyun
-
-# 2. Clone Repository
 git clone https://github.com/jx-sec/jxwaf.git
+cd jxwaf/Professional/jxwaf_admin_server/
 
-# 3. Start Container
-cd jxwaf/standard
+# Edit docker-compose.yml as needed (e.g., MySQL password, HTTPS toggle)
+vim docker-compose.yml
+
 docker compose up -d
 ```
 
-WAF Console Address: http://47.120.63.196:8000
+After deployment, visit `http://<public-IP>`. You need to register an account on the first visit (strongly recommended to enable OTP two‑factor authentication).  
+After logging in, go to **System Management → Basic Information** to obtain `waf_auth` for later node configuration.
 
-## Configuration Instructions
+#### Key Environment Variables
 
-### Docker Compose File Configuration
+- `MYSQL_ROOT_PASSWORD` – MySQL root password (must be changed in production)
+- `OPEN_REGIST` – Enable open registration (`false` disables new user registration)
+- `JXWAF_MODEL_SERVER_HOST` / `JXWAF_MODEL_SERVER_PORT` / `JXWAF_MODEL_SERVER_SSL` – AI model service connection parameters
 
-- **JXWAF_MODEL_QUERY**  
-  Whether to enable JXWAF large model semantic caching service and join the group immunity network. Values: `true` or `false`.  
-  - **Large Model Semantic Caching Service**: When encountering unknown requests, it first queries the cache. If a hit occurs, there's no need to query through the large model, which can significantly save large model usage costs.
-  - **Group Immunity Network**: When other WAFs detect new attack POCs, they synchronize model parameters to the local WAF through the group immunity network, enabling real-time acquisition of the latest detection capabilities.
+### 2. JXWAF Node Deployment
 
-- **AI_BACKUP_WAF_URL**  
-  When the large model service is unavailable for various reasons, this configuration can be used to obtain detection capabilities from other WAFs. Since requests need to be forwarded to the target WAF, there may be data leakage risks.
-
-### Console AI Protection Configuration
-
-#### Protection Mode Description
-
-Unlike traditional WAFs' black-and-white detection mode, AI WAF adopts a **non-white-then-black** detection mode.
-
-- **Online Learning**  
-  Trains the local model based on online business traffic without taking any actions.
-  
-- **Online Protection - Business Priority**  
-  Known attack traffic is intercepted. Unknown traffic is first allowed through, and after AI analysis produces results, the local model is synchronously updated for processing.
-
-- **Online Protection - Security Priority**  
-  Known attack traffic is intercepted. Unknown traffic is first intercepted, and after AI analysis produces results, the local model is synchronously updated for processing.
-
-- **Offline Protection**  
-  Both known attack traffic and unknown traffic are intercepted, and the local model is no longer updated.
-
-## Protection Effectiveness Comparison
-
-**Testing Method**:  
 ```bash
-docker run --rm --net=host ccr.ccs.tencentyun.com/jxwaf/blazehttp:latest /app/blazehttp -t http://172.30.42.104/xxx
+cd jxwaf/Professional/jxwaf_node
+
+# Edit docker-compose.yml and set:
+#   JXWAF_SERVER = console address (e.g. http://47.120.63.196)
+#   WAF_AUTH      = waf_auth obtained from the console
+#   HTTP_PORT / HTTPS_PORT = listening ports (comma‑separated for multiple)
+vim docker-compose.yml
+
+docker compose up -d
 ```
-Using the sample set provided by the blazehttp project from Chaitin, results are as follows:
 
-### JXWAF6 Standard Edition - DeepSeek
-- Total Samples: 33877, Successful: 33877, Errors: 0
-- Detection Rate: 41.03% (Malicious Samples: 658, Correctly Blocked: 270, Missed: 388)
-- False Positive Rate: 0.14% (Normal Samples: 33219, Correctly Allowed: 33172, False Blocked: 47)
-- Accuracy: 98.72% ((Correctly Blocked + Correctly Allowed) / Total Samples)
-- Average Processing Time: 28.19 milliseconds
+After starting, check **Operations Center → Node Status** in the console to confirm the node is online.
 
-### JXWAF5 - Semantic Analysis Engine
-- Total Samples: 33877, Successful: 33877, Errors: 0
-- Detection Rate: 26.90% (Malicious Samples: 658, Correctly Blocked: 177, Missed: 481)
-- False Positive Rate: 0.20% (Normal Samples: 33219, Correctly Allowed: 33153, False Blocked: 66)
-- Accuracy: 98.39%
-- Average Processing Time: 43.68 milliseconds
+#### Key Environment Variables
 
-### Cloud WAF A - Default Configuration
-- Total Samples: 33877, Successful: 33877, Errors: 0
-- Detection Rate: 40.12% (Malicious Samples: 658, Correctly Blocked: 264, Missed: 394)
-- False Positive Rate: 0.23% (Normal Samples: 33219, Correctly Allowed: 33143, False Blocked: 76)
-- Accuracy: 98.61%
-- Average Processing Time: 43.36 milliseconds
+**`jxwaf_base` container**:
+- `HTTP_PORT` / `HTTPS_PORT` – listening ports, comma‑separated for multiple
+- `JXWAF_SERVER` – console address (no trailing `/`)
+- `WAF_AUTH` – console authentication key
 
-### WAF B - Official Demo Configuration
-- Total Samples: 33877, Successful: 33877, Errors: 0
-- Detection Rate: 44.38% (Malicious Samples: 658, Correctly Blocked: 292, Missed: 366)
-- False Positive Rate: 0.19% (Normal Samples: 33219, Correctly Allowed: 33155, False Blocked: 64)
-- Accuracy: 98.73%
-- Average Processing Time: 33.02 milliseconds
+**`jxwaf_nft_node` container**:
+- `WAF_SERVER_URL` – console address
+- `WAF_AUTH` – console authentication key
+- `SYNC_INTERVAL` – configuration sync interval (seconds)
 
-**Conclusion**: JXWAF6 Standard Edition shows significant improvement in detection effectiveness compared to JXWAF5, reaching commercial WAF detection standards.
+### 3. JXLOG Log System Deployment
 
-## WeChat Official Account
+```bash
+cd jxwaf/Professional/jxlog
+docker compose up -d
+```
 
-Welcome to follow our WeChat Official Account for future updates and technical sharing.
+After deployment, complete the following configuration in the console:
 
-<kbd><img src="img/wx_code.jpeg"></kbd>
+**System Configuration → Log Forwarding Settings** (attack log upload to jxlog)
+
+| Setting               | Value                         |
+| --------------------- | ----------------------------- |
+| Log server address    | `<jxlog internal IP>`         |
+| Log server port       | `8877`                        |
+
+**System Configuration → Log Query Settings** (query logs via ClickHouse)
+
+| Setting               | Value                         |
+| --------------------- | ----------------------------- |
+| ClickHouse address    | `<jxlog internal IP>`         |
+| Port                  | `9004`                        |
+| Username / Password   | `jxlog` / `jxlog` (must be changed in production) |
+| Database / Table      | `jxwaf` / `jxlog`             |
+
+---
+
+## Performance Test (Single Node, 4C8G)
+
+Stress test of the AI security model service interface using `wrk`:
+
+| Test Scenario                 | HTTP QPS | HTTPS QPS | HTTP Overhead | HTTPS Overhead |
+| ----------------------------- | -------- | --------- | ------------- | -------------- |
+| Pure forwarding (all off)     | 48,262   | 30,422    | —             | —              |
+| AI protection + semantic engine | 31,159 | 21,343    | ↓ 35.5%       | ↓ 29.8%        |
+| All protection engines on     | 18,462   | 13,253    | ↓ 61.7%       | ↓ 56.4%        |
+
+**Conclusions**
+- Pure forwarding exceeds **48K QPS (HTTP)** on a single node.
+- Enabling AI + semantic engine reduces performance by only **≈30%** — minimal cost for deep defence.
+- With all engines on, the node still handles **18K+ QPS**, average latency < 80ms, per‑core throughput > 4600 QPS, capable of processing over **300 million requests per day**.
+- Horizontal scaling via clustering linearly increases throughput, suitable for high‑traffic enterprise scenarios.
+
+Detailed raw data: [Performance Test Report](https://docs.jxwaf.com/jxwaf/Performance-Test.html).
+
+---
+
+## Protection Capability Test
+
+Tests conducted using 477 attack PoCs generated from [PayloadsAllTheThings](https://github.com/swisskyrepo/PayloadsAllTheThings), covering 36 categories.
+
+| Metric                | Value   |
+| --------------------- | ------- |
+| Total test cases      | 477     |
+| Successfully blocked  | 461     |
+| Not blocked (missed)  | 16      |
+| Overall pass rate     | **96.6%** |
+
+Category pass rates:
+- SQL Injection (incl. MySQL/MSSQL/Oracle, etc.): **100%**
+- XSS (incl. context‑aware bypasses): **100%**
+- Command Injection (incl. WAF bypass): **95%+**
+- File Inclusion / Directory Traversal: **100%**
+- Deserialization (Java/PHP/Python, etc.): **100%**
+- Server‑side Injection (SSTI/SSI/XSLT): **100%**
+- File Upload (incl. bypasses): **100%**
+- WAF Bypass Special (SQLi/XSS/Command/Path, etc.): **96%+**
+
+Full details: [Protection Capability Test Report](https://docs.jxwaf.com/jxwaf/Protection-Capability-Test.html).
+
+---
+
+## Community Support
+
+### Donations
+
+If JXWAF helps you, feel free to scan the WeChat QR code to support us!
+
+<p align="center"><img src="img/sponsor.jpg" width="200"></p>
+
+> Thank you to every supporter ❤️
+
+### WeChat Official Account
+
+Follow our official account for the latest updates and technical articles.
+
+<p align="center"><img src="img/wx_code.jpeg" width="200"></p>
+
+### User Group
+
+Join our WeChat group to discuss and exchange ideas with other developers.
+
+<p align="center"><img src="img/wx_group.jpg" width="200"></p>
+
+> If the group QR code expires or is full, contact admin via WeChat: `574604532` (add note: jxwaf)
 
 ## Contributors
 
 - [chenjc](https://github.com/jx-sec)
 - [jiongrizi](https://github.com/jiongrizi)
-- [thankfly](https://github.com/thankfly)
 
-## BUG & Requirements
+## Feedback
 
-- WeChat: 574604532 (Please add note "jxwaf" when connecting)
+- WeChat: `574604532` (add note: jxwaf)
