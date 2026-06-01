@@ -20,8 +20,8 @@
     <td><img src="img/console-dashboard2.png" width="380"></td>
   </tr>
   <tr>
-    <td align="center"><b>Web引擎配置</b></td>
-    <td align="center"><b>流量引擎配置</b></td>
+    <td align="center"><b>Web防护引擎配置</b></td>
+    <td align="center"><b>流量防护引擎配置</b></td>
   </tr>
   <tr>
     <td><img src="img/console-dashboard3.png" width="380"></td>
