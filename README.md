@@ -8,6 +8,10 @@
 
 > 📖 完整使用文档请访问 **[https://docs.jxwaf.com](https://docs.jxwaf.com)**
 
+> 🔗 **在线体验**：[waf-demo.jxwaf.com](https://waf-demo.jxwaf.com)  
+> 账号：`demo`　密码：`123456`
+
+
 ## 产品亮点
 
 ### AI 安全模型
