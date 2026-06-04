@@ -4,7 +4,7 @@ services:
   # 采用语义缓存 + 多轮投票机制，实现高并发、低成本、低幻觉的安全检测
   # ============================================================================
   jxwaf_model_platform:
-    image: ccr.ccs.tencentyun.com/jxwaf/jxwaf_model_platform:1.18
+    image: ccr.ccs.tencentyun.com/jxwaf/jxwaf_model_platform:1.24
     # 容器名称
     container_name: jxwaf_model_platform
     # 容器退出时自动重启
