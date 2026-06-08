@@ -71,7 +71,7 @@ services:
       #- ./ssl/server.crt:/opt/jxwaf_model_update/nginx/conf/server.crt:ro
       #- ./ssl/server.key:/opt/jxwaf_model_update/nginx/conf/server.key:ro
 
-mysql_db:
+  mysql_db:
     image: ccr.ccs.tencentyun.com/jxwaf/mysql:8.0
     restart: always
     network_mode: host
