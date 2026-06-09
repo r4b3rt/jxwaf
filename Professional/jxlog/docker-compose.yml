@@ -15,6 +15,7 @@ services:
       CLICKHOUSE_DB: jxwaf
       CLICKHOUSE_USER: jxlog
       CLICKHOUSE_PASSWORD: jxlog
+      TZ: Asia/Shanghai
     volumes:
       - /opt/jxwaf_data/clickhouse:/var/lib/clickhouse
     restart: unless-stopped
@@ -39,6 +40,7 @@ services:
       BATCH_WAIT_TIMEOUT: 3
       TTL_DAYS: 30
       ENGINE: MergeTree
+      TZ: Asia/Shanghai
     depends_on:
       - clickhouse
     restart: unless-stopped
