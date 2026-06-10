@@ -1,6 +1,6 @@
 services:
   jxwaf_base:
-    image: "ccr.ccs.tencentyun.com/jxwaf/jxwaf_node_professional:6.1.8"
+    image: "ccr.ccs.tencentyun.com/jxwaf/jxwaf_node_professional:6.1.9"
     network_mode: host
     privileged: true
     ulimits:
@@ -9,9 +9,9 @@ services:
         hard: 602400
     environment:
       # 多端口用逗号分隔，如: HTTP_PORT: 80,8080,8888
-      HTTP_PORT: 80,8000
+      HTTP_PORT: 80
       # 多端口用逗号分隔，如: HTTPS_PORT: 443,8443
-      HTTPS_PORT: 443,8443
+      HTTPS_PORT: 443
       JXWAF_INNER: 200m
       SSL_ATTACK_STAT_SIZE: 100m
       SSL_BLACK_IP_SIZE: 100m
