@@ -14,36 +14,38 @@ services:
       - --collation-server=utf8mb4_0900_ai_ci
       - --innodb_buffer_pool_size=256M
       - --bind-address=127.0.0.1
+      - --max-connections=1000
     volumes:
-      - /opt/jxwaf_data/mysql:/var/lib/mysql
+      - /opt/jxwaf_data/standard_mysql:/var/lib/mysql
 
   jxwaf_admin_server:
-    image: ccr.ccs.tencentyun.com/jxwaf/jxwaf_admin_server_standard:6.13
+    image: ccr.ccs.tencentyun.com/jxwaf/jxwaf_admin_server_standard:6.1.14
     restart: unless-stopped
     network_mode: host
     environment:
       HTTP_PORT: 8000
       HTTPS_PORT: 8443
-      ENABLE_HTTPS: false
+      ENABLE_HTTPS: "false"
       MYSQL_HOST: 127.0.0.1
       MYSQL_PORT: 3306
       MYSQL_DATABASE: jxwaf_admin_server
       MYSQL_USER: root
       MYSQL_PASSWORD: 958fba75-56c6-4e81-a892-62517a9e1739
-      JXWAF_MODEL_QUERY: true   # 是否开启JXWAF模型缓存服务，值为 true 或者 false
-      JXWAF_MODEL_QUERY_HOST: model.jxwaf.com
-      JXWAF_MODEL_QUERY_PORT: 29977
-      #AI_BACKUP_WAF_URL: https://demo.waf-ce.chaitin.cn:10084/hello.html # AI模型分析失败，使用WAF进行分析
-      #AI_BACKUP_WAF_BLOCK_CODE: 403
+      JXWAF_MODEL_SERVER_HOST: model.jxwaf.com
+      JXWAF_MODEL_SERVER_PORT: 39977
+      JXWAF_MODEL_SERVER_SSL: "true"
       WAF_AUTH: ade1e4c0-d644-46fe-9675-5fb59b486381
-    volumes:
-      - ./ssl_certs/server.crt:/opt/jxwaf_admin_server/nginx/conf/server.crt
-      - ./ssl_certs/server.key:/opt/jxwaf_admin_server/nginx/conf/server.key
+      WAF_UPDATE_CONF_DATA_SIZE: "100m"
+      CONF_DATA_SIZE: "100m"
+      MODEL_DATA_SIZE: "100m"
+    #volumes:
+      #- ./ssl_certs/server.crt:/opt/jxwaf_admin_server/nginx/conf/server.crt
+      #- ./ssl_certs/server.key:/opt/jxwaf_admin_server/nginx/conf/server.key
     depends_on:
       - mysql_db
 
   jxwaf_node_standard:
-    image: "ccr.ccs.tencentyun.com/jxwaf/jxwaf_node_standard:6.5"
+    image: "ccr.ccs.tencentyun.com/jxwaf/jxwaf_node_standard:6.1.6"
     network_mode: host
     privileged: true
     ulimits:
@@ -53,16 +55,28 @@ services:
     environment:
       HTTP_PORT: 80
       HTTPS_PORT: 443
-      WAF_CONF_DATA: 1000m
-      JXWAF_INNER: 200m
-      JXWAF_PUBLIC: 200m
-      JXWAF_LIMIT_BOT: 200m
+      WAF_CONF_DATA: 100m
+      JXWAF_INNER: 100m
+      JXWAF_USER: 100m
+      JXWAF_REQUEST_COUNT: 100m
+      JXWAF_REQUEST_IP: 100m
+      JXWAF_REQUEST_IP_COUNT: 100m
+      JXWAF_LIMIT_BOT: 100m
+      RESOLVER_IPS: "223.5.5.5 119.29.29.29 114.114.114.114 1.1.1.1"
+      SSL_ATTACK_STAT_SIZE: 10m
+      SSL_BLACK_IP_SIZE: 10m
+      SSL_ATTACK_PROTECT: "false"
+      SSL_ATTACK_STAT_TIME: 60
+      SSL_ATTACK_STAT_COUNT: 10000
+      SSL_ATTACK_BLOCK_TIME: 600
       LOG_IP: 127.0.0.1
       LOG_PORT: 12997
       JXWAF_SERVER: http://127.0.0.1:8000
       WAF_AUTH: ade1e4c0-d644-46fe-9675-5fb59b486381
       TZ: Asia/Shanghai
     restart: unless-stopped
+    #volumes:
+      #- ./nginx.conf.tmpl:/opt/jxwaf/nginx/conf/nginx.conf.tmpl:ro
 
   log_send_to_mysql:
     image: ccr.ccs.tencentyun.com/jxwaf/log_send_to_mysql:v2
@@ -72,11 +86,9 @@ services:
       LISTEN_ADDR: ":12997"
       BATCH_SIZE: "50"
       BATCH_WAIT_TIMEOUT: "2s"
-
       MAX_CONNECTIONS: "1000"
       MAX_IDLE_CONNS: "10"
       CONN_MAX_LIFETIME: "10m"
-
       DB_HOST: "127.0.0.1"
       DB_PORT: "3306"
       DB_DATABASE: "jxwaf_admin_server"
@@ -88,4 +100,16 @@ services:
     depends_on:
       - mysql_db
 
+  jxwaf_nft_node:
+    image: ccr.ccs.tencentyun.com/jxwaf/jxwaf_nft_node:7.0
+    container_name: jxwaf_nft_node
+    restart: always
+    network_mode: host
+    privileged: true
+    environment:
+      WAF_SERVER_URL: http://127.0.0.1:8000
+      WAF_AUTH: ade1e4c0-d644-46fe-9675-5fb59b486381
+      SYNC_INTERVAL: 3
+      TZ: Asia/Shanghai
+      WAF_FILTER_PORTS: "80,443"
 
