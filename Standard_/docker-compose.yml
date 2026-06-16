@@ -112,4 +112,3 @@ services:
       SYNC_INTERVAL: 3
       TZ: Asia/Shanghai
       WAF_FILTER_PORTS: "80,443"
-
